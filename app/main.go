@@ -9,5 +9,8 @@ var _ = fmt.Print
 
 func main() {
 	// TODO: Uncomment the code below to pass the first stage
+	var input string
 	fmt.Print("$ ")
+	fmt.Scanln(&input)
+	fmt.Printf("%v: command not found", input)
 }
