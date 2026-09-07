@@ -1,27 +1,39 @@
 package utils
 
-import ("os")
+import (
+	"errors"
+	"os"
+	"path/filepath"
+)	
 
-PATH := []string {"/c/Users/abhin/.nvm/versions/node/v22.12.0/bin", "/c/Users/abhin/bin", "/mingw64/bin", 
-"/usr/local/bin", "/usr/bin", "/bin"}
 
-func findFileInDir(target string) (string, bool, error) {
-	for _, i := range PATH{
-		entries, err := os.ReadDir(i)
-		if err != nil{
-			return "", false, err
-		}
-
-		for _, entry := range entries{
-			if !entry.IsDir() && entry.Name() == target{
-				return i + "/" + entry.Name(), true, nil
-			}
-		}
-	}
-	return "", false, nil
+var BuiltInCommands = []string{
+	"echo", 
+	"type",
+	"exit",
 }
 
-func main() {
-	filePath, found, err := findFileInDir(".", "main.go")
-	
+var PATHS = []string{
+	`C:\Program Files\Git\usr\bin`,
+}
+var ErrNotFound = errors.New("command not found")
+
+func FindCommand(target string) (string, bool, error) {
+	for _, builtIn := range BuiltInCommands{
+		if target == builtIn{
+			return "", true, nil
+		}
+	}
+
+	target = target + ".exe"
+
+	for _, dir := range PATHS{
+		fullPath := filepath.Join(dir, target)
+		info, err := os.Stat(fullPath)
+		if err == nil && !info.IsDir(){
+			return fullPath, false, nil
+		}
+	}
+
+	return "", false, ErrNotFound
 }
