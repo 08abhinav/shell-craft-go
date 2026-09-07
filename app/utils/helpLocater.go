@@ -2,8 +2,8 @@ package utils
 
 import (
 	"errors"
-	"os"
-	"path/filepath"
+	"os/exec"
+	"strings"
 )	
 
 
@@ -13,9 +13,6 @@ var BuiltInCommands = []string{
 	"exit",
 }
 
-var PATHS = []string{
-	`C:\Program Files\Git\usr\bin`,
-}
 var ErrNotFound = errors.New("command not found")
 
 func FindCommand(target string) (string, bool, error) {
@@ -25,15 +22,26 @@ func FindCommand(target string) (string, bool, error) {
 		}
 	}
 
-	target = target + ".exe"
+	path, err := exec.LookPath(target)
+	if err == nil{
+		return path, false, nil
+	}
+	
+	return "", false, ErrNotFound
+}
 
-	for _, dir := range PATHS{
-		fullPath := filepath.Join(dir, target)
-		info, err := os.Stat(fullPath)
-		if err == nil && !info.IsDir(){
-			return fullPath, false, nil
-		}
+func RunProgram(input string) (string, error){
+	value := strings.Fields(input)
+
+	command := value[0]
+	args := value[1: ]
+	
+	cmd := exec.Command(command, args...)
+
+	output, err := cmd.Output()
+	if err == nil{
+		return string(output), nil
 	}
 
-	return "", false, ErrNotFound
+	return "", ErrNotFound
 }
