@@ -40,6 +40,20 @@ func main() {
 				fmt.Printf("%s: not found\n", token)
 			}
 
+		}else if command == "pwd" || strings.HasPrefix(command, "cd "){
+			output, isBuiltin, err := utils.BuiltinExecute(command)
+			if isBuiltin {
+				if err != nil {
+					args := strings.Fields(command)
+					target := ""
+					if len(args) > 1 {
+						target = args[1]
+					}
+					fmt.Printf("cd: %s: No such file or directory\n", target)
+				} else if output != "" {
+					fmt.Println(output)
+				}
+			}
 		}else{
 			output, err := utils.RunProgram(command)
 
