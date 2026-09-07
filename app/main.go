@@ -24,10 +24,10 @@ func main() {
 
 		command = strings.TrimSpace(command)
 		
-		if command == "exit"{
+		if command == "" || command == " "{
+			continue
+		}else if command == "exit"{
 			break
-		}else if strings.HasPrefix(command, "echo "){
-			fmt.Println(command[5: ])
 		}else if strings.HasPrefix(command, "type "){
 			token := command[5:]
 
@@ -41,7 +41,14 @@ func main() {
 			}
 
 		}else{
-			fmt.Println(command + ": command not found")
+			output, err := utils.RunProgram(command)
+
+			if err != nil{
+				fmt.Fprint(os.Stderr, "Error reading input: ", err)
+				os.Exit(1)
+			}
+
+			fmt.Print(output)
 		}
 	}
 }
