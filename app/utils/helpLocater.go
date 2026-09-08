@@ -90,3 +90,44 @@ func BuiltinExecute(cmd string) (string, bool, error) {
 		return "", false, nil
 	}
 }
+
+func QuotingOps(input string) []string{
+	var args []string
+	var current strings.Builder
+	inSingleQuotes := false
+	hasToken := false
+
+	input = strings.ReplaceAll(input, "\u00a0", " ")
+
+	for i := 0; i < len(input); i++{
+		char := input[i]
+		
+		if inSingleQuotes{
+			if char == '\''{
+				inSingleQuotes = false
+			}else{
+				current.WriteByte(char)
+			}
+			hasToken = true
+		}else{
+			if char == '\''{
+				inSingleQuotes = true
+				hasToken = true
+			}else if char == ' ' || char == '\t'{
+				if hasToken{
+					args = append(args, current.String())
+					current.Reset()
+					hasToken = false
+				}
+			}else{
+				current.WriteByte(char)
+				hasToken = true
+			}
+		}
+	}
+
+	if hasToken{
+		args = append(args, current.String())
+	}
+	return args
+}
