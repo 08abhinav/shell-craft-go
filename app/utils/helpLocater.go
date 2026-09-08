@@ -69,6 +69,17 @@ func BuiltinExecute(cmd string) (string, bool, error) {
 			return "", true, ErrNotFound
 		}
 
+		arg := args[0]
+
+		if arg == "~"{
+			err := os.Chdir(os.Getenv("HOME"))
+			if err != nil {
+				return "", true, err
+			}
+
+			return "", true, nil
+		}
+
 		err := os.Chdir(args[0])
 		if err != nil {
 			return "", true, err
