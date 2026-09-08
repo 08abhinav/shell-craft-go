@@ -54,6 +54,14 @@ func main() {
 					fmt.Println(output)
 				}
 			}
+		}else if strings.HasPrefix(command, "echo"){
+			args := utils.QuotingOps(command)
+
+			if len(args) > 1{
+				fmt.Println(strings.Join(args[1: ], " "))
+			}else{
+				fmt.Println()
+			}
 		}else{
 			output, err := utils.RunProgram(command)
 
