@@ -95,6 +95,7 @@ func QuotingOps(input string) []string{
 	var args []string
 	var current strings.Builder
 	inSingleQuotes := false
+	inDoubleQuotes := false
 	hasToken := false
 
 	input = strings.ReplaceAll(input, "\u00a0", " ")
@@ -109,17 +110,31 @@ func QuotingOps(input string) []string{
 				current.WriteByte(char)
 			}
 			hasToken = true
-		}else{
-			if char == '\''{
+		}else if inDoubleQuotes{
+			if char == '"'{
+				inDoubleQuotes = false
+			}else if char == '\\' && i+1 < len(input) && (input[i+1] == '"' || input[i+1] == '\\' || input[i+1] == '$' || input[i+1] == '\n') {
+				i++
+				current.WriteByte(input[i])
+			} else {
+				current.WriteByte(char)
+			}
+			hasToken = true
+		}else {
+			if char == '\'' {
 				inSingleQuotes = true
 				hasToken = true
-			}else if char == ' ' || char == '\t'{
-				if hasToken{
+			} else if char == '"' {
+				inDoubleQuotes = true
+				hasToken = true
+			} else if char == ' ' || char == '\t' {
+
+				if hasToken {
 					args = append(args, current.String())
 					current.Reset()
 					hasToken = false
 				}
-			}else{
+			} else {
 				current.WriteByte(char)
 				hasToken = true
 			}
