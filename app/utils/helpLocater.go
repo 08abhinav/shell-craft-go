@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"errors"
 	"os"
 	"os/exec"
@@ -15,6 +16,8 @@ var BuiltInCommands = []string{
 }
 
 var ErrNotFound = errors.New("command not found")
+var ErrNoRedirect = errors.New("could not redirect")
+var ErrInvalidRedirect = errors.New("invalid command")
 
 func FindCommand(target string) (string, bool, error) {
 	for _, builtIn := range BuiltInCommands{
@@ -110,6 +113,7 @@ func QuotingOps(input string) []string{
 				current.WriteByte(char)
 			}
 			hasToken = true
+			continue
 		}else if inDoubleQuotes{
 			if char == '"'{
 				inDoubleQuotes = false
@@ -120,24 +124,42 @@ func QuotingOps(input string) []string{
 				current.WriteByte(char)
 			}
 			hasToken = true
-		}else {
-			if char == '\'' {
-				inSingleQuotes = true
-				hasToken = true
-			} else if char == '"' {
-				inDoubleQuotes = true
-				hasToken = true
-			} else if char == ' ' || char == '\t' {
+			continue
+		}
 
-				if hasToken {
-					args = append(args, current.String())
-					current.Reset()
-					hasToken = false
-				}
-			} else {
-				current.WriteByte(char)
-				hasToken = true
+		switch char {
+		case '\'':
+			inSingleQuotes = true
+			hasToken = true
+
+		case '"':
+			inDoubleQuotes = true
+			hasToken = true
+
+		case ' ', '\t':
+			if hasToken {
+				args = append(args, current.String())
+				current.Reset()
+				hasToken = false
 			}
+
+		case '>':
+			if hasToken {
+				args = append(args, current.String())
+				current.Reset()
+				hasToken = false
+			}
+
+			if i+1 < len(input) && input[i+1] == '>' {
+				args = append(args, ">>")
+				i++
+			} else {
+				args = append(args, ">")
+			}
+
+		default:
+			current.WriteByte(char)
+			hasToken = true
 		}
 	}
 
@@ -145,4 +167,65 @@ func QuotingOps(input string) []string{
 		args = append(args, current.String())
 	}
 	return args
+}
+
+type Command struct{
+	Name 		string
+	Args 	  []string
+	Redirect 	string
+	FileName 	string
+}
+
+func Redirecting(tokens []string) error{
+	redirectIdx := -1
+
+	for i, token := range tokens{
+		if token == ">" || token == ">>"{
+			redirectIdx = i
+			break
+		}
+	}
+
+	if redirectIdx == -1{
+		return ErrNoRedirect
+	}
+
+	if redirectIdx+1 >= len(tokens) {
+		return ErrInvalidRedirect
+	}
+
+	cmd := &Command{
+		Name: tokens[0],
+		Args: tokens[1 : redirectIdx],
+		Redirect: tokens[redirectIdx],
+		FileName: tokens[redirectIdx + 1],
+	}
+
+	var file *os.File
+	var err error
+
+	if cmd.Redirect == ">"{
+		file, err = os.OpenFile(
+			cmd.FileName, 
+			os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 
+			0644,
+		)
+	}else if cmd.Redirect == ">>"{
+		fmt.Println("Reach >> here")
+		file, err = os.OpenFile(
+			cmd.FileName, 
+			os.O_CREATE|os.O_WRONLY|os.O_APPEND, 
+			0644,
+		)
+	}
+	if err != nil{
+		return err
+	}
+	defer file.Close()
+
+	process := exec.Command(cmd.Name, cmd.Args...)
+	process.Stdout = file
+	process.Stderr = os.Stderr
+
+	return process.Run()
 }
