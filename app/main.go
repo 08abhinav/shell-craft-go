@@ -5,6 +5,7 @@ import (
 	"os"
 	"fmt"
 	"strings"
+	"slices"
 	"github.com/codecrafters-io/shell-starter-go/app/utils"
 )
 
@@ -56,8 +57,15 @@ func main() {
 			}
 		}else if strings.HasPrefix(command, "echo"){
 			args := utils.QuotingOps(command)
-
-			if len(args) > 1{
+			
+			fmt.Println("TOKENS", args)
+			
+			if slices.Contains(args, ">") || slices.Contains(args, ">>"){
+				if err := utils.Redirecting(args); err != nil{
+					fmt.Fprintln(os.Stderr, "Error: ", err)
+				}
+			
+			}else if len(args) > 1{
 				fmt.Println(strings.Join(args[1: ], " "))
 			}else{
 				fmt.Println()
