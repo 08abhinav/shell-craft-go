@@ -211,7 +211,6 @@ func Redirecting(tokens []string) error{
 			0644,
 		)
 	}else if cmd.Redirect == ">>"{
-		fmt.Println("Reach >> here")
 		file, err = os.OpenFile(
 			cmd.FileName, 
 			os.O_CREATE|os.O_WRONLY|os.O_APPEND, 
