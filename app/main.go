@@ -57,9 +57,7 @@ func main() {
 			}
 		}else if strings.HasPrefix(command, "echo"){
 			args := utils.QuotingOps(command)
-			
-			fmt.Println("TOKENS", args)
-			
+
 			if slices.Contains(args, ">") || slices.Contains(args, ">>"){
 				if err := utils.Redirecting(args); err != nil{
 					fmt.Fprintln(os.Stderr, "Error: ", err)
@@ -70,6 +68,14 @@ func main() {
 			}else{
 				fmt.Println()
 			}
+		}else if strings.HasPrefix(command, "cat"){
+			args := utils.QuotingOps(command)
+
+			data, err := utils.RedirectinStdErr(args)
+			if err != nil{
+				fmt.Fprintln(os.Stderr, "Error: ", err)
+			}
+			fmt.Println(data)
 		}else{
 			output, err := utils.RunProgram(command)
 
