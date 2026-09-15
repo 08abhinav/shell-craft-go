@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"fmt"
 	"errors"
 	"os"
 	"os/exec"
@@ -156,7 +155,19 @@ func QuotingOps(input string) []string{
 			} else {
 				args = append(args, ">")
 			}
+		case '2':
+			if hasToken {
+				args = append(args, current.String())
+				current.Reset()
+				hasToken = false
+			}
 
+			if i+1 < len(input) && input[i+1] == '>'{
+				args = append(args, "2>")
+				i++
+			}else {
+				args = append(args, ">")
+			}
 		default:
 			current.WriteByte(char)
 			hasToken = true
@@ -180,7 +191,7 @@ func Redirecting(tokens []string) error{
 	redirectIdx := -1
 
 	for i, token := range tokens{
-		if token == ">" || token == ">>"{
+		if token == ">" || token == ">>" || token == "2>" || token == "2>>"{
 			redirectIdx = i
 			break
 		}
@@ -204,7 +215,7 @@ func Redirecting(tokens []string) error{
 	var file *os.File
 	var err error
 
-	if cmd.Redirect == ">"{
+	if cmd.Redirect == ">" || cmd.Redirect == "2>"{
 		file, err = os.OpenFile(
 			cmd.FileName, 
 			os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 
@@ -227,4 +238,33 @@ func Redirecting(tokens []string) error{
 	process.Stderr = os.Stderr
 
 	return process.Run()
+}
+
+type ReadCommand struct{
+	Name		string
+	FileName    string	
+}
+
+func RedirectinStdErr(tokens []string) (string, error){
+	cmd := &ReadCommand{
+		Name: 		tokens[0],
+		FileName: 	tokens[1],
+	}
+
+	var file *os.File
+	var err error
+
+	file, err = os.Open(cmd.FileName)
+	if err != nil{
+		return "", err
+	}
+
+	data := make([]byte, 100)
+	
+	count, err := file.Read(data)
+	if err != nil{
+		return "", err
+	}
+	
+	return string(data[:count]), err
 }
