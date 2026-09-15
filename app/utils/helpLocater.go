@@ -2,6 +2,7 @@ package utils
 
 import (
 	"errors"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -156,17 +157,15 @@ func QuotingOps(input string) []string{
 				args = append(args, ">")
 			}
 		case '2':
-			if hasToken {
-				args = append(args, current.String())
-				current.Reset()
-				hasToken = false
-			}
-
 			if i+1 < len(input) && input[i+1] == '>'{
+				if current.Len() > 0{
+					current.Reset()
+				}
 				args = append(args, "2>")
 				i++
-			}else {
-				args = append(args, ">")
+			}else{
+				current.WriteByte(char)
+				hasToken = true
 			}
 		default:
 			current.WriteByte(char)
@@ -240,31 +239,77 @@ func Redirecting(tokens []string) error{
 	return process.Run()
 }
 
-type ReadCommand struct{
-	Name		string
-	FileName    string	
+type RedirectStdErr struct{
+	Name			string
+	File1			string
+	RedirectToken	string
+	RedirectFile	string	
 }
 
 func Concatenate(tokens []string) (string, error){
-	cmd := &ReadCommand{
-		Name: 		tokens[0],
-		FileName: 	tokens[1],
-	}
-
+	redirectIdx := -1
 	var file *os.File
 	var err error
 
-	file, err = os.Open(cmd.FileName)
-	if err != nil{
+	for i, token := range tokens{
+		if token == "2>" || token == "2>>"{
+			redirectIdx = i
+			break
+		}
+	}
+
+	if redirectIdx == -1{
+		file, err = os.Open(tokens[1])
+		if err != nil{
+			return "", err
+		}
+		defer file.Close()
+
+		data, err := io.ReadAll(file)
+		if err != nil{
+			return "", err
+		}
+		return string(data), err
+	}
+
+	if redirectIdx+1 >= len(tokens) {
+		return "", ErrInvalidRedirect
+	}
+
+	cmd := &RedirectStdErr{
+		Name:			tokens[0],
+		File1:			tokens[1],
+		RedirectToken: 	tokens[redirectIdx],
+		RedirectFile:	tokens[redirectIdx + 1],
+	}
+
+	if cmd.RedirectToken == "2>" {
+		file, err = os.OpenFile(
+			cmd.RedirectFile,
+			os.O_CREATE|os.O_WRONLY|os.O_TRUNC,
+			0644,
+		)
+	} else {
+		file, err = os.OpenFile(
+			cmd.RedirectFile,
+			os.O_CREATE|os.O_WRONLY|os.O_APPEND,
+			0644,
+		)
+	}
+
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	process := exec.Command(cmd.Name, cmd.File1)
+	process.Stderr = file
+
+	output, err := process.Output()
+
+	if err != nil {
 		return "", err
 	}
 
-	data := make([]byte, 100)
-	
-	count, err := file.Read(data)
-	if err != nil{
-		return "", err
-	}
-	
-	return string(data[:count]), err
+	return string(output), nil
 }
