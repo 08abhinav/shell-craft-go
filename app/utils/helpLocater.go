@@ -245,7 +245,7 @@ type ReadCommand struct{
 	FileName    string	
 }
 
-func RedirectinStdErr(tokens []string) (string, error){
+func Concatenate(tokens []string) (string, error){
 	cmd := &ReadCommand{
 		Name: 		tokens[0],
 		FileName: 	tokens[1],
