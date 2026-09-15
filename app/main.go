@@ -71,9 +71,8 @@ func main() {
 		}else if strings.HasPrefix(command, "cat"){
 			args := utils.QuotingOps(command)
 
-			data, err := utils.RedirectinStdErr(args)
-			if err != nil{
-				fmt.Fprintln(os.Stderr, "Error: ", err)
+			data, err := utils.Concatenate(args)
+			if err == nil{
 			}
 			fmt.Println(data)
 		}else{
